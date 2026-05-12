@@ -2,11 +2,12 @@ const Pet = require('../models/Pet')
 const getUserByToken= require('../helpers/get-user-by-token')
 const getToken= require('../helpers/get-token')
 
-const PetController = {
+module.exports = class PetController {
 
-    async create(req, res) {
+    static async create(req, res) {
         const {name, age, weight, color} = req.body
         const images = req.files
+
 
         if(!name) {
             return res.status(422).json({message:'O nome é obriga´tório'})
@@ -52,5 +53,12 @@ const PetController = {
         } catch (error){
             return res.status(500).json({message: error.message})
         }
-    },
+    }
+
+    static async getAll(req, res)
+    {
+        const pets = await Pet.find().sort('-createdAdt')
+
+        return res.status(200).json({pets})
+    }
 }

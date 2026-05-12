@@ -161,5 +161,73 @@ module.exports = class PetController {
           } catch (error) {
             return res.status(500).json({ message: error.message })
           }
+    }
+    async schedule(req, res) {
+        const { id } = req.params
+      
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+          return res.status(422).json({ message: 'ID inválido!' })
         }
+      
+        const pet = await Pet.findById(id)
+      
+        if (!pet) {
+          return res.status(404).json({ message: 'Pet não encontrado!' })
+        }
+      
+        const token = getToken(req)
+        const user = await getUserByToken(token)
+      
+        if (pet.user._id.toString() === user._id.toString()) {
+          return res.status(422).json({ message: 'Você não pode agendar uma visita para o seu pet!' })
+        }
+      
+        if (pet.adopter && pet.adopter._id && pet.adopter._id.toString() === user._id.toString()) {
+          return res.status(422).json({ message: 'Você já agendou uma visita para esse pet!' })
+        }
+
+        pet.adopter = {
+          _id: user._id,
+          name: user.name,
+          image: user.image,
+        }
+      
+        try {
+          await pet.save()
+          return res.status(200).json({
+            message: `Visita agendada com sucesso! Entre em contato com ${pet.user.name} pelo telefone ${pet.user.phone}.`,
+          })
+        } catch (error) {
+          return res.status(500).json({ message: error.message })
+        }
+      }
+      
+      async concludeAdoption(req, res) {
+        const { id } = req.params
+      
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+          return res.status(422).json({ message: 'ID inválido!' })
+        }
+      
+        const pet = await Pet.findById(id)
+      
+        if (!pet) {
+          return res.status(404).json({ message: 'Pet não encontrado!' })
+        }
+
+        const token = getToken(req)
+        const user = await getUserByToken(token)
+      
+        if (pet.user._id.toString() !== user._id.toString()) {
+          return res.status(403).json({ message: 'Acesso negado! Você não é o dono desse pet.' })
+        }
+      
+        try {
+          await Pet.findByIdAndUpdate(id, { available: false })
+          return res.status(200).json({ message: 'Adoção concluída com sucesso!' })
+        } catch (error) {
+          return res.status(500).json({ message: error.message })
+        }
+      }
     }

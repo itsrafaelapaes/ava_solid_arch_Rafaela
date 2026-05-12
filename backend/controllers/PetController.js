@@ -119,5 +119,47 @@ module.exports = class PetController {
         await Pet.findByIdAndDelete(id)
       
         return res.status(200).json({ message: 'Pet removido com sucesso!' })
-      }
-}
+    }
+    async updatePet (req,res)
+    {
+        const {id} = req.params
+        const {name, age, weight, color} = req.body
+        const images = req.files
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(422).json({ message: 'ID inválido!' })
+          }
+        
+          const pet = await Pet.findById(id)
+        
+          if (!pet) {
+            return res.status(404).json({ message: 'Pet não encontrado!' })
+          }
+        
+          const token = getToken(req)
+          const user = await getUserByToken(token)
+        
+          if (pet.user._id.toString() !== user._id.toString()) {
+            return res.status(403).json({ message: 'Acesso negado! Você não é o dono desse pet.' })
+          }
+
+          const updatedData = {}
+        
+          if (name) updatedData.name   = name
+          if (age) updatedData.age    = age
+          if (weight) updatedData.weight = weight
+          if (color) updatedData.color  = color
+        
+          if (images && images.length > 0) {
+            updatedData.images = images.map((image) => image.filename)
+          }
+        
+          try {
+            const updatedPet = await Pet.findByIdAndUpdate(id, updatedData, { new: true })
+        
+            return res.status(200).json({ message: 'Pet atualizado com sucesso!', updatedPet })
+          } catch (error) {
+            return res.status(500).json({ message: error.message })
+          }
+        }
+    }

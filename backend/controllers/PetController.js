@@ -79,5 +79,45 @@ module.exports = class PetController {
 
         return res.status(200).json({pets})
     }
+    static async getPetById(req, res) {
+        const{id} = req.params
 
+        if (!mongoose.Types.ObjectId.isValid(id))
+        {
+        return res.status(422).json({message: 'Id inválido!'})
+        }
+        const pet = await Pet.findById(id)
+
+        if(!pet) 
+        {
+            return res.status(200).json({message:'Pet não encontrado'})
+        }
+        return res.status(200).json({pet})
+    }
+    async removePetById(req, res) {
+        const { id } = req.params
+      
+     
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+          return res.status(422).json({ message: 'ID inválido!' })
+        }
+      
+        const pet = await Pet.findById(id)
+      
+        if (!pet) {
+          return res.status(404).json({ message: 'Pet não encontrado!' })
+        }
+      
+       
+        const token = getToken(req)
+        const user = await getUserByToken(token)
+      
+        if (pet.user._id.toString() !== user._id.toString()) {
+          return res.status(403).json({ message: 'Acesso negado! Você não é o dono deste pet.' })
+        }
+      
+        await Pet.findByIdAndDelete(id)
+      
+        return res.status(200).json({ message: 'Pet removido com sucesso!' })
+      }
 }
